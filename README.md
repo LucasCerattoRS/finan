@@ -12,6 +12,8 @@ Sem nuvem. Sem conta. Sem internet. Seus dados nunca saem da sua máquina.
 [![Licença](https://img.shields.io/badge/Licen%C3%A7a-CC%20BY--NC--SA%204.0-EF9421?logo=creativecommons&logoColor=white)](#-licen%C3%A7a)
 [![Material de estudo](https://img.shields.io/badge/Material%20de%20estudo-37%20documentos-blue)](#-material-de-estudo)
 
+<img src="docs/screenshots/01-dashboard.png" alt="Dashboard do Finan — entradas, saídas, score de saúde e gráfico de 6 meses" width="860">
+
 </div>
 
 ---
@@ -50,7 +52,34 @@ O **Finan** é duas coisas ao mesmo tempo:
 | **Importar** | Solte o `.ofx`/`.csv` do banco: o Finan lê, categoriza por regras, marca o que já existe e só grava o que você confirmar. |
 | **Revisar** | O que o extrato não categorizou aparece agrupado por destino. Resolva em lote; sua escolha vira regra. |
 | **Cartões** | Cadastro (fechamento/vencimento), faturas do mês com pagamento e progresso, próximas faturas com botão de adiantar, parcelas em aberto. |
+| **Planejar** | Orçamento por categoria: estimado × gasto real do mês, com barras de progresso e cópia do mês anterior. |
+| **Reservas** | Reserva de emergência com aportes e retiradas — dinheiro *carimbado*, medido em meses de custo essencial. |
+| **Metas** | Renda, patrimônio investido, aporte mensal e projeção de **juros compostos** até a liberdade financeira. |
 | **Config** | Regras de categorização, categorias, formas de pagamento, contas próprias e backup `.json`. |
+
+<div align="center">
+<table>
+  <tr>
+    <td><img src="docs/screenshots/03-importar.png" alt="Importar extrato — pré-visualização com categorização automática e detecção de duplicatas"></td>
+    <td><img src="docs/screenshots/04-revisar.png" alt="Revisar — lançamentos sem categoria agrupados por destino"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/05-cartoes.png" alt="Cartões — faturas com progresso de pagamento e adiantamento"></td>
+    <td><img src="docs/screenshots/06-planejar.png" alt="Planejar — orçamento estimado × real por categoria"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/07-reservas.png" alt="Reserva de emergência — aportes, retiradas e meta em meses"></td>
+    <td><img src="docs/screenshots/08-metas.png" alt="Metas — projeção de juros compostos até a liberdade financeira"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/02-lancamentos.png" alt="Lançar — formulário único com sugestão de categoria"></td>
+    <td><img src="docs/screenshots/09-config.png" alt="Config — regras, categorias, contas próprias e backup"></td>
+  </tr>
+</table>
+
+*Todas as capturas usam **dados 100% fictícios**, gerados por [`scripts/screenshots.mjs`](scripts/screenshots.mjs) — que sobe o app de verdade numa pasta temporária e fotografa cada tela.*
+
+</div>
 
 ---
 
