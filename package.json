@@ -1,0 +1,59 @@
+{
+  "name": "finan",
+  "version": "0.1.0",
+  "description": "Gestor de finanças pessoais offline, desktop (Electron) e portátil — acompanhado de material de estudo que explica o código linha a linha.",
+  "author": "Lukas Ceratti Agnese (https://github.com/LucasCerattoRS)",
+  "license": "CC-BY-NC-SA-4.0",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test:core": "node --test test/*.test.mjs",
+    "test:e2e": "node scripts/smoke-electron.mjs",
+    "atalho:linux": "bash scripts/instalar-atalho.sh",
+    "atalho:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/instalar-atalho.ps1",
+    "pendrive:linux": "bash scripts/sync-pendrive.sh",
+    "pendrive:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync-pendrive.ps1",
+    "atalho-pendrive:linux": "bash scripts/atalho-pendrive.sh",
+    "atalho-pendrive:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/atalho-pendrive.ps1",
+    "categorias:exportar": "node scripts/exportar-categorias.mjs",
+    "categorias:importar": "node scripts/importar-categorias.mjs",
+    "dist": "electron-builder",
+    "dist:linux": "electron-builder --linux AppImage",
+    "dist:win": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.lukas.finan",
+    "productName": "Finan",
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office",
+      "icon": "build/icon.png"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "build/icon.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LucasCerattoRS/finan.git"
+  }
+}

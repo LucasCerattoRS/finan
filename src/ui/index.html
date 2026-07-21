@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Finan</title>
+  <link rel="stylesheet" href="../styles/app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◈</span>
+      <span>Finan</span>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-tab="dashboard" class="active">Início</button>
+      <button data-tab="lancamentos">Lançar</button>
+      <button data-tab="importar">Importar</button>
+      <button data-tab="revisar">Revisar <i class="badge" id="badgeRevisar"></i></button>
+      <button data-tab="cartoes">Cartões</button>
+      <button data-tab="planejar">Planejar</button>
+      <button data-tab="reservas">Reservas</button>
+      <button data-tab="metas">Metas</button>
+      <button data-tab="config">Config</button>
+    </nav>
+    <div class="topright">
+      <label class="mes-picker">
+        <span>Mês</span>
+        <select id="mesSelect"></select>
+      </label>
+      <span class="saldo-pill" id="saldoPill">R$ 0,00</span>
+    </div>
+  </header>
+
+  <main id="view"></main>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
