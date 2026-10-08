@@ -53,6 +53,33 @@ testes.
 
 ---
 
+## Bloco 0.5 — a trava contra gravar por cima de dados ilegíveis
+
+```js
+// Dados que existem mas não deu para ler (JSON corrompido): o app abre vazio para não
+// travar, mas NÃO grava. O primeiro save trocaria o arquivo do usuário por um estado vazio.
+// A gravação volta quando um backup é importado (liberarGravacao).
+let falhaLeitura = null;
+export const falhaDeLeitura = () => falhaLeitura;
+export const liberarGravacao = () => { falhaLeitura = null; };
+```
+
+**O que faz.** Guarda, no próprio módulo, se a última leitura falhou e por quê. Enquanto
+`falhaLeitura` não for `null`, o `salvarEstado` do Bloco 1 se recusa a gravar.
+
+**Por que existe (uma correção de 08/10/2026).** Antes, um `dados.json` corrompido fazia o app
+abrir vazio, e o **primeiro lançamento** gravava esse estado vazio por cima do arquivo do usuário:
+a recuperação dependia dos backups datados do `main.js`. Agora o app continua abrindo (não trava na
+tela branca), mas avisa e não grava nada até um backup ser importado.
+
+**Sintaxe — estado de módulo com `let` e duas funções.** `falhaLeitura` não é exportada direto:
+quem está fora só lê por `falhaDeLeitura()` e só limpa por `liberarGravacao()`. Um `export let`
+deixaria outro arquivo ler, mas não escrever (exportações de módulo ES são somente leitura para
+quem importa); as duas funções deixam explícito **quem** pode destravar: só o fluxo de importar
+backup, em `app.js`.
+
+---
+
 ## Bloco 1 — carregar e salvar
 
 ```js
@@ -64,12 +91,16 @@ export async function carregarEstado() {
     }
     return carregar(localStorage.getItem(LS_KEY));
   } catch (e) {
-    console.error('Falha ao carregar; começando vazio.', e);
+    console.error('Falha ao carregar; começando vazio e com gravação bloqueada.', e);
+    falhaLeitura = e && e.message ? e.message : String(e);
     return estadoInicial();
   }
 }
 
 export async function salvarEstado(estado) {
+  if (falhaLeitura) {
+    throw new Error(`Gravação bloqueada: os dados salvos não puderam ser lidos (${falhaLeitura}).`);
+  }
   const json = JSON.stringify(estado, null, 2);
   if (temElectron()) {
     await window.finanwise.salvar(json);
@@ -104,13 +135,18 @@ inteligência de "isso é um dado válido? precisa de migração?" mora em `carr
 mesma separação que o `CLAUDE.md` pede — núcleo puro, UI com efeito colateral —
 vista em código real.
 
-**Armadilha.** O `catch` do `carregarEstado` engole **qualquer** erro (disco
-ilegível, IPC quebrada, JSON corrompido) e devolve silenciosamente um estado vazio
-(`estadoInicial()`). Do ponto de vista do usuário isso é ótimo (o app nunca trava
-na tela branca) — mas um `dados.json` corrompido vira um app "vazio" sem aviso
-nenhum na tela, só um `console.error` que ninguém vê fora do DevTools. É por isso
-que o `electron/main.js` mantém backups datados: se isso acontecer, a recuperação
-existe, mesmo que o app não grite sozinho.
+**A armadilha que existia, e como foi fechada.** O `catch` do `carregarEstado` engole **qualquer**
+erro (disco ilegível, IPC quebrada, JSON corrompido) e devolve um estado vazio (`estadoInicial()`).
+Para o usuário isso é bom (o app nunca trava na tela branca), mas sozinho era perigoso: o app
+parecia "zerado", sem aviso, e o primeiro save escrevia o vazio por cima. Agora o `catch` também
+anota `falhaLeitura`, e duas coisas mudam:
+
+- `salvarEstado` lança `Gravação bloqueada…` em vez de gravar;
+- o `app.js` mostra um aviso longo ao abrir e a cada tentativa de salvar (`persistir`, Parte 1).
+
+Importar um backup chama `liberarGravacao()` e tudo volta ao normal. O teste
+`test/storage-leitura.test.mjs` prova os três casos: JSON quebrado bloqueia e não toca no dado,
+importar libera, e dado bom nunca trava.
 
 ---
 

@@ -11,6 +11,30 @@
 
 ---
 
+## Bloco 0 — o cabeçalho e as duas dependências
+
+```js
+// parcelas.js — explode compras no cartão (tipo "cartao") em parcelas.
+// Herdado da aba "Parcelas": N parcelas de valor/N, distribuídas nas faturas.
+// A última parcela absorve o resíduo do arredondamento -> a soma fecha o total.
+
+import { paraCentavos, paraReais, somaMeses } from './model.js';
+import { mesPrimeiraFatura } from './faturas.js';
+```
+
+**O que faz.** Traz as três ferramentas de dinheiro e data de [`model.js`](./model.explicado.md)
+e a regra do mês da 1ª fatura de [`faturas.js`](./faturas.explicado.md). Nada de DOM, nada de
+disco: só funções puras, e por isso o arquivo inteiro é testável com `node --test`.
+
+**Por que cada uma:**
+- `paraCentavos` / `paraReais` — a divisão em N parcelas é feita em **centavos inteiros**
+  (Bloco 1); só no fim volta para reais. Com `float`, `100 / 3` deixaria um centavo sobrando ou faltando.
+- `somaMeses` — a parcela `k` cai `k - 1` meses depois da primeira fatura.
+- `mesPrimeiraFatura` — decide se a compra entra na fatura deste mês ou da próxima, pelo dia
+  de fechamento do cartão. É a única dependência entre os dois arquivos da cadeia do cartão.
+
+---
+
 ## Bloco 1 — explodir uma compra em parcelas
 
 ```js

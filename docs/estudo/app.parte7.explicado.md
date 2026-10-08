@@ -405,7 +405,7 @@ sem nenhuma lógica própria.
     el('button', { class: 'btn', onclick: async () => { const nome = await exportarBackup(estado); if (nome) toast(`Exportado: ${nome}`); } }, '⭳ Exportar backup (.json)'),
     el('button', { class: 'btn ghost', onclick: async () => {
       const novo = await importarBackup();
-      if (novo) { estado = novo; await persistir(); toast('Backup importado!'); }
+      if (novo) { liberarGravacao(); estado = novo; await persistir(); toast('Backup importado!'); }
     } }, '⭱ Importar backup'),
   ]));
   v.append(backup);
@@ -432,6 +432,11 @@ mudar toda a cadeia de chamadas, incluindo `persistir()`).
 de arquivo. Sem o `if`, cancelar a importação sobrescreveria `estado` com
 `null` e o app quebraria na próxima leitura. A guarda garante que só uma
 importação **bem-sucedida** substitui o estado.
+
+**`liberarGravacao()` antes de tudo.** Importar um backup é a saída prevista para quando os
+dados salvos estavam ilegíveis (`storage.explicado.md`, Bloco 0.5): sem destravar, o
+`persistir()` logo abaixo cairia na guarda e não gravaria o backup recém-importado. Fica
+**dentro** do `if (novo)`: cancelar a janela de arquivo não destrava nada.
 
 ---
 
@@ -631,11 +636,16 @@ inline na UI.
 // ---------- init ----------
 async function init() {
   estado = await carregarEstado();
+  if (falhaDeLeitura()) toast(AVISO_LEITURA, 15000);
   const meses = C.mesesComMovimento(estado);
   if (meses.length) mesAtual = meses[meses.length - 1];
 ```
 
-**O que faz.** As três primeiras linhas de `init` fazem o trabalho mais
+**O aviso de dados ilegíveis.** Logo depois de carregar, se `storage.js` marcou que a
+leitura falhou (Bloco 0.5 de `storage.explicado.md`), o app avisa por 15 segundos em vez
+de abrir "vazio" em silêncio. A gravação já está travada; o aviso só conta ao usuário por quê.
+
+**O que faz.** As primeiras linhas de `init` fazem o trabalho mais
 importante da função inteira: carregam o estado persistido do disco
 (`carregarEstado`, ver `storage.explicado.md` — que por sua vez, no Fluxo 1
 de `FLUXOGRAMA.md`, passa por `preload.js` → IPC → `main.js` → `C.carregar`)

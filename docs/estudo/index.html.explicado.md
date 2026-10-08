@@ -55,6 +55,7 @@ folha de estilo.
 ## Bloco 1 — a topbar (marca, abas, seletor de mês)
 
 ```html
+<body>
 <header class="topbar">
   <div class="brand">
     <span class="logo">◈</span>
@@ -119,6 +120,8 @@ documento.
 <div id="toast" class="toast"></div>
 
 <script type="module" src="./app.js"></script>
+</body>
+</html>
 ```
 
 **O que faz.** Três linhas que resumem toda a filosofia da UI: um contêiner

@@ -41,6 +41,7 @@
 import * as C from '../core/index.js';
 import {
   carregarEstado, salvarEstado, localDados, exportarBackup, importarBackup,
+  falhaDeLeitura, liberarGravacao,
 } from './storage.js';
 import {
   graficoEvolucao, graficoCategorias, sparkline, gaugeSaude,
@@ -291,9 +292,9 @@ function opts(select, lista, sel) {
 function field(label, input) {
   return el('label', { class: 'field' }, [el('span', {}, label), input]);
 }
-function toast(msg) {
+function toast(msg, ms = 1800) {
   const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800);
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms);
 }
 ```
 
@@ -319,7 +320,9 @@ mirror).
 
 **`toast` — mensagem temporária no rodapé da tela.** Escreve a mensagem no
 elemento `#toast`, adiciona a classe `show` (que o CSS anima), e agenda a
-remoção da classe 1800ms depois.
+remoção da classe depois de `ms` milissegundos: 1800 por padrão (parâmetro com
+valor padrão, `ms = 1800`), mais quando o aviso é longo e importante, como o de
+dados ilegíveis do Bloco 7.
 
 **Sintaxe — `toast._t` como "slot de memória".** Funções em JavaScript são
 objetos — podem ganhar propriedades como qualquer outro objeto. `toast._t =
@@ -381,12 +384,21 @@ mostrar" que aparece de novo em `prazoLegivel` (Parte 7, fora desta mirror).
 ## Bloco 7 — `persistir`, o ritual central
 
 ```js
+const AVISO_LEITURA = 'Seus dados salvos não puderam ser lidos. Nada será gravado até você importar um backup (Config → Importar backup). O arquivo original não foi tocado.';
+
 async function persistir() {
+  if (falhaDeLeitura()) { toast(AVISO_LEITURA, 10000); return; }
   await salvarEstado(estado);
   atualizarTopo();
   render();
 }
 ```
+
+**A guarda da primeira linha (08/10/2026).** Se a leitura dos dados falhou ao abrir
+(`storage.js`, Bloco 0.5), `persistir` não tenta gravar: mostra o aviso por 10 segundos e
+volta. A mudança fica só na tela; o arquivo original continua intacto até o usuário importar um
+backup. É aqui, no ponto único de mutação, que a guarda faz sentido: nenhuma das trinta
+funções que mudam o estado precisa saber que ela existe.
 
 **O que faz.** Três linhas, mas é o contrato central do app inteiro. Toda
 mutação, em qualquer aba, segue **exatamente** este ritual: gravar no disco
