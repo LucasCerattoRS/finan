@@ -581,6 +581,288 @@ correto, não um cheiro de código.
 
 ---
 
+## Bloco 9 — as regras que os blocos acima resumiram
+
+Os Blocos 0 a 8 escolheram as regras que ensinam cada ideia. Este bloco fecha o espelho: tudo o que
+ficou de fora aparece aqui, na ordem do arquivo, com o porquê do que não é óbvio. O teste
+`test/estudo.test.mjs` confere que nenhuma regra do `app.css` fica sem aparecer em algum bloco.
+
+### 9.1 O anel de pontuação antigo (`.ring`) — CSS morto
+
+```css
+/* score ring (mantido p/ compat; hero usa .gauge) */
+.score-wrap { display: flex; align-items: center; gap: 16px; }
+.ring { --p: 0; width: 84px; height: 84px; border-radius: 50%;
+  background: conic-gradient(var(--brand) calc(var(--p) * 1%), var(--surface-2) 0);
+  display: grid; place-items: center; flex: 0 0 auto; }
+.ring::after { content: ""; width: 64px; height: 64px; border-radius: 50%; background: var(--surface); grid-area: 1/1; }
+.ring .num { grid-area: 1/1; z-index: 1; font-weight: 800; font-size: 22px; }
+```
+
+**Ninguém usa mais.** O comentário do próprio arquivo avisa ("mantido p/ compat; hero usa .gauge"), e
+uma busca confirma: nem `app.js` nem `charts.js` criam `.score-wrap` ou `.ring`. O hero do Bloco 5
+desenha o medidor de saúde com `.gauge`. Fica aqui porque o espelho cobre o arquivo inteiro, mas é o
+primeiro candidato a apagar numa limpeza.
+
+**O truque que vale aprender mesmo assim: rosca só com CSS.** `conic-gradient` pinta o círculo como
+uma pizza: `var(--brand)` de 0 até `--p`% e `var(--surface-2)` no resto. O `::after` é um círculo
+menor da cor do fundo, empilhado no centro (`grid-area: 1/1` põe filho e pseudo-elemento na mesma
+célula da grade); o "buraco" transforma a pizza em rosca. O número fica por cima com `z-index: 1`.
+Quem usa só troca a variável: `style="--p: 72"`.
+
+### 9.2 Tabelas por inteiro
+
+```css
+/* ---- Tabelas ---- */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr:hover td { background: var(--surface-2); }
+.tab-anos { margin-top: 14px; }
+.tab-anos th:not(:first-child), .tab-anos td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.tab-anos tr.ano-atual td { background: var(--brand-soft); font-weight: 700; }
+.tab-anos tr.ano-atual td:first-child { color: var(--brand-ink); }
+.tag { padding: 2px 8px; border-radius: 20px; font-size: 12px; background: var(--surface-2); }
+.tag.ess { color: var(--pos); }
+.tag.nao { color: var(--warn); }
+.amount.in { color: var(--pos); }
+.amount.out { color: var(--neg); }
+```
+
+**`.table-wrap { overflow-x: auto }` — tabela larga no celular.** Tabela não encolhe como texto: com
+`white-space: nowrap` nas células (Bloco 6), uma tabela de 7 colunas passa da largura da tela. Em vez
+de quebrar o layout da página inteira, o invólucro ganha rolagem horizontal só para ela.
+
+**`border-collapse: collapse`.** Junta as bordas de células vizinhas numa linha só; sem isso, cada
+célula desenha a sua e aparecem linhas duplas.
+
+**`.tab-anos ... :not(:first-child)`.** Na tabela de anos, a primeira coluna é o rótulo (o ano) e
+todas as outras são valores. Em vez de pôr `.num` em cada `<td>`, um seletor diz "toda célula que
+não é a primeira" e alinha à direita. A linha do ano corrente (`tr.ano-atual`) ganha o fundo
+`--brand-soft` e o rótulo em `--brand-ink`.
+
+**`.tag`, `.amount` — cor com significado.** `.tag.ess` (essencial) em `--pos` e `.tag.nao` em
+`--warn`; `.amount.in`/`.amount.out` pintam entrada e saída. É o mesmo princípio dos tokens do
+Bloco 0: a cor vem de um papel (`--pos`, `--neg`), não de um hexadecimal escolhido ali.
+
+### 9.3 Formulários por inteiro
+
+```css
+/* ---- Forms ---- */
+.form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin: 10px 0; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field span { font-size: 12px; color: var(--muted); }
+input, select {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); color: var(--text); font: inherit; font-size: 14px; min-width: 120px;
+}
+input:focus, select:focus { outline: 2px solid var(--brand-2); outline-offset: -1px; }
+button.btn {
+  padding: 8px 16px; border: none; border-radius: 8px; background: var(--brand);
+  color: #fff; font-weight: 600; cursor: pointer; font: inherit; font-size: 14px;
+}
+button.btn:hover { filter: brightness(1.06); }
+button.btn.ghost { background: var(--surface-2); color: var(--text); }
+button.btn.danger { background: transparent; color: var(--neg); padding: 4px 8px; }
+button.link { background: none; border: none; color: var(--brand); cursor: pointer; font: inherit; }
+```
+
+**`.form-row` com `align-items: flex-end`.** Os campos têm rótulo em cima e altura diferente (um
+`<select>`, um `<input>`, um botão). Alinhar pela base deixa todos os controles na mesma linha
+visual, com os rótulos "pendurados" acima; com `flex-wrap: wrap` eles descem para a linha de baixo
+quando a tela estreita.
+
+**`font: inherit` em `input`, `select` e botão.** Por padrão o navegador dá a controles de
+formulário uma fonte própria do sistema, menor que a do texto. `inherit` faz o controle usar a
+mesma família do resto da página; o `font-size: 14px` logo depois fixa só o tamanho.
+
+**`outline-offset: -1px` no foco.** O contorno de foco (acessibilidade: mostra onde está o teclado)
+é desenhado 1px para dentro, por cima da borda, em vez de "engordar" o campo para fora.
+
+**`filter: brightness(1.06)` no hover do botão.** Clareia o botão em 6% sem precisar de um segundo
+token de cor "brand-hover": funciona igual no tema claro e no escuro.
+
+**`button.link` — outro seletor morto.** Nenhum lugar do `app.js` cria `class: 'link'`; mesmo caso
+do `.ring` em 9.1.
+
+### 9.4 Grade de duas colunas, estado vazio e chips
+
+```css
+.subgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .subgrid { grid-template-columns: 1fr; } }
+
+.empty { color: var(--muted); padding: 24px; text-align: center; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: var(--surface-2); padding: 4px 10px; border-radius: 20px; display: flex; gap: 6px; align-items: center; }
+.chip button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; }
+```
+
+**`.subgrid` + `@media (max-width: 760px)`.** Duas colunas lado a lado no computador; abaixo de
+760px, uma coluna só. É o único `@media` de largura do arquivo: o resto do layout se adapta sozinho
+com `flex-wrap` e `auto-fit` (Bloco 4).
+
+**`.empty`.** O texto cinza centralizado que aparece quando uma lista está vazia ("Sem gastos neste
+mês.", "Nenhuma fatura fecha neste mês."). Ter uma classe só para isso garante que todo estado vazio do app tenha a mesma cara.
+
+**`.chips` / `.chip`.** As etiquetas arredondadas da tela de Config (as listas editáveis e as
+regras de categorização), cada uma com um botãozinho de remover. `flex-wrap` deixa a lista quebrar em várias
+linhas como texto.
+
+### 9.5 Gráficos: eixos, legenda e barras de categoria
+
+```css
+/* ---- Gráfico de evolução (SVG) ---- */
+.chart { width: 100%; }
+.chart-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart-svg .grid { stroke: var(--grid); stroke-width: 1; }
+.chart-svg .baseline { stroke: var(--grid); stroke-width: 1; }
+.chart-svg .axis { fill: var(--muted); font-size: 10px; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.chart-svg .bar-mark { transition: opacity .12s ease; }
+.chart-svg:hover .bar-mark { opacity: .55; }
+.chart-svg .bar-mark:hover { opacity: 1; }
+
+.chart-legend { display: flex; gap: 16px; margin-bottom: 10px; }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); font-weight: 600; }
+.legend-item i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+/* sparkline (KPIs / hero) */
+.spark { display: block; width: 100%; }
+
+/* ---- Gastos por categoria (barras horizontais, uma cor só) ---- */
+.chart-cats { display: flex; flex-direction: column; gap: 11px; }
+.catrow { display: grid; grid-template-columns: 104px 1fr auto; align-items: center; gap: 11px; }
+.catrow-nome { font-size: 12.5px; font-weight: 600; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.catrow-valor { font-size: 12.5px; color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+.bar { background: var(--surface-2); border-radius: 999px; height: 9px; overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, color-mix(in oklab, var(--c-cat) 78%, #fff 8%), var(--c-cat)); transition: width .5s cubic-bezier(.4, 0, .2, 1); }
+```
+
+**SVG com cor por token.** `.chart-svg .grid`, `.baseline` e `.axis` usam `stroke`/`fill` (as
+propriedades de cor do SVG) apontando para `--grid` e `--muted`. Por isso o gráfico que `charts.js`
+desenha troca de cor sozinho no tema escuro: o SVG não tem cor escrita, só classes.
+
+**`overflow: visible` no SVG.** Rótulos do eixo que passam um pouco da área do desenho não são
+cortados.
+
+**`.catrow { grid-template-columns: 104px 1fr auto }`.** Cada linha de "para onde foi o dinheiro" é
+uma grade de três colunas: nome com largura fixa, barra que ocupa o que sobrar (`1fr`) e valor do
+tamanho do próprio texto (`auto`). Nome comprido não empurra a barra: `text-overflow: ellipsis`
+corta com "…".
+
+**A barra que cresce (`.bar > i`).** O `<i>` dentro de `.bar` recebe `width: 63%` pelo JS; a
+`transition: width .5s cubic-bezier(.4, 0, .2, 1)` anima a mudança com a curva "sai rápido, chega
+devagar". O degradê nasce de um único token (`--c-cat`) com `color-mix`, então não existe uma
+segunda cor para manter.
+
+### 9.6 Faturas, tela de lançar e as pílulas de tipo
+
+```css
+/* ---- Faturas (progresso do pagamento) ---- */
+.fatura { padding: 13px 0; border-bottom: 1px solid var(--border); }
+.fatura:last-child { border-bottom: 0; }
+.fatura-topo { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.fatura-nums { font-size: 12px; margin-top: 6px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.bar-fatura { height: 9px; }
+.bar-fatura > i { background: var(--pos); }
+
+/* ---- Lançar: tipo como botão + valor em destaque ---- */
+.card.destaque { border-color: var(--brand); }
+.tipo-toggle { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 14px; background: var(--surface-2); border-radius: 10px; }
+.tipo-btn { border: 0; background: transparent; color: var(--muted); padding: 7px 14px; border-radius: 7px; cursor: pointer; font: inherit; font-weight: 600; font-size: 13px; }
+.tipo-btn:hover { color: var(--text); }
+.tipo-btn.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+.input-valor { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.campos-cartao { display: contents; }
+.form-row.compacta { margin-top: 8px; }
+
+.pill-tipo { font-size: 11px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pill-tipo.entrada { background: color-mix(in srgb, var(--pos) 16%, transparent); color: var(--pos); }
+.pill-tipo.saida   { background: color-mix(in srgb, var(--neg) 16%, transparent); color: var(--neg); }
+.pill-tipo.cartao  { background: color-mix(in srgb, var(--brand) 18%, transparent); color: var(--brand); }
+.pill-tipo.transferencia { background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
+```
+
+**`.fatura:last-child { border-bottom: 0 }`.** Cada fatura tem uma linha embaixo para separar da
+próxima; a última não precisa. É mais simples que lembrar de não pôr a borda no último item no JS.
+
+**`.tipo-toggle` / `.tipo-btn.active` — controle segmentado.** Os botões Saída / Entrada / Cartão
+ficam numa "trilha" cinza; o ativo ganha fundo de cartão (`--surface`) e sombra, parecendo uma
+peça levantada. Faz o papel de um grupo de botões de rádio (só um ativo por vez), feito com
+`<button>` comuns e uma classe.
+
+**`.campos-cartao { display: contents }` — o detalhe mais fino do arquivo.** Os campos "Cartão" e
+"Parcelas" ficam dentro de uma `<div>` para o JS poder escondê-los juntos
+(`camposCartao.style.display = 'none'`). Mas uma `<div>` no meio de `.form-row` viraria **um** item
+do flex, e os dois campos ficariam presos dentro dela. `display: contents` faz a caixa da `<div>`
+desaparecer do layout: os filhos passam a ser itens do `.form-row`, como se a `<div>` não
+existisse. Quando o JS volta o `style.display` para `''`, vale de novo o `contents` do CSS.
+
+**`.pill-tipo` base + variantes.** A forma (pílula pequena, `white-space: nowrap`) fica na classe
+base; cada tipo só define a cor, de novo com `color-mix` sobre o token (ver Bloco 7).
+
+### 9.7 Importação, planejamento e o contador da aba Revisar
+
+```css
+/* ---- Importação ---- */
+input.file { padding: 8px; }
+tr.dup { opacity: .55; }
+tr.destaque-linha { background: color-mix(in srgb, var(--brand) 8%, transparent); }
+.tag.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.muted { color: var(--muted); }
+
+/* ---- Planejar (orçamento estimado x real) ---- */
+.bar-orc { height: 8px; margin-top: 2px; max-width: 240px; }
+.bar-orc > i { background: var(--pos); }
+.bar-orc.over > i { background: var(--neg); }
+.num-input { min-width: 90px; width: 120px; text-align: right; font-variant-numeric: tabular-nums; }
+.total-row td { border-top: 2px solid var(--border); }
+.total-row:hover td { background: transparent; }
+
+/* Contador da aba Revisar */
+.tabs .badge {
+  display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px;
+  border-radius: 999px; background: var(--neg); color: #fff;
+  font-size: 10px; font-weight: 700; font-style: normal; line-height: 1;
+  font-variant-numeric: tabular-nums;
+```
+
+**`tr.dup { opacity: .55 }`.** Na prévia da importação, linha que já existe aparece apagada: o
+usuário vê que ela não vai ser gravada de novo sem precisar ler um aviso. `tr.destaque-linha` está
+nesta seção do arquivo mas é usada na aba Cartões: na lista de parcelas, realça a que cai na fatura
+do mês aberto (`p.mesFatura === mesAtual`).
+
+**`.bar-orc.over > i`.** A barra do orçamento é verde até estourar; passou do estimado, o JS põe
+`.over` e ela fica vermelha. Uma classe de estado em vez de cor calculada no JS.
+
+**`.total-row:hover td { background: transparent }`.** Toda linha de tabela ganha fundo no hover
+(Bloco 6), mas a linha de total não é clicável nem selecionável; esta regra desliga o efeito só
+nela. Ordem importa: ela vem depois e é mais específica que `tr:hover td`.
+
+**O badge completo.** O Bloco 7 mostrou o essencial (`inline-grid` + `place-items`); aqui estão o
+`padding: 0 5px` (para "12" caber sem apertar), o `line-height: 1` (sem ele o número fica fora do
+centro vertical) e o `tabular-nums` (dígitos da mesma largura: o badge não "pula" quando a contagem
+muda de 9 para 10).
+
+### 9.8 O toast completo
+
+```css
+/* ---- Toast ---- */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 10px;
+  opacity: 0; transition: .25s; pointer-events: none; box-shadow: var(--shadow);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+```
+
+As linhas que o Bloco 8 resumiu: o toast usa as cores **invertidas** (`background: var(--text)`,
+`color: var(--bg)`): escuro no tema claro e claro no tema escuro, sempre em contraste com a página
+por baixo, sem um token só para ele.
+
+---
+
 ## Mapa mental
 
 ```

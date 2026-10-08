@@ -6,6 +6,13 @@ import { carregar, estadoInicial } from '../core/index.js';
 const LS_KEY = 'finanwise:dados';
 const temElectron = () => typeof window !== 'undefined' && window.finanwise;
 
+// Dados que existem mas não deu para ler (JSON corrompido): o app abre vazio para não
+// travar, mas NÃO grava. O primeiro save trocaria o arquivo do usuário por um estado vazio.
+// A gravação volta quando um backup é importado (liberarGravacao).
+let falhaLeitura = null;
+export const falhaDeLeitura = () => falhaLeitura;
+export const liberarGravacao = () => { falhaLeitura = null; };
+
 export async function carregarEstado() {
   try {
     if (temElectron()) {
@@ -14,12 +21,16 @@ export async function carregarEstado() {
     }
     return carregar(localStorage.getItem(LS_KEY));
   } catch (e) {
-    console.error('Falha ao carregar; começando vazio.', e);
+    console.error('Falha ao carregar; começando vazio e com gravação bloqueada.', e);
+    falhaLeitura = e && e.message ? e.message : String(e);
     return estadoInicial();
   }
 }
 
 export async function salvarEstado(estado) {
+  if (falhaLeitura) {
+    throw new Error(`Gravação bloqueada: os dados salvos não puderam ser lidos (${falhaLeitura}).`);
+  }
   const json = JSON.stringify(estado, null, 2);
   if (temElectron()) {
     await window.finanwise.salvar(json);

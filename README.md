@@ -85,7 +85,7 @@ O **Finan** é duas coisas ao mesmo tempo:
 
 ## 📚 Material de estudo
 
-O diferencial deste repositório. **37 documentos** em [`docs/estudo/`](docs/estudo/) cobrem 100% do código — cada arquivo-fonte tem um "espelho" `*.explicado.md` que o percorre linha a linha, com verificação automática de que **nenhuma linha do fonte ficou de fora e nenhuma linha foi inventada**.
+O diferencial deste repositório. **37 documentos** em [`docs/estudo/`](docs/estudo/) cobrem 100% do código — cada arquivo-fonte tem um "espelho" `*.explicado.md` que o percorre linha a linha, com verificação automática de que **nenhuma linha do fonte ficou de fora e nenhuma linha foi inventada** — é o `test/estudo.test.mjs`, que roda no CI a cada push: mudou o código sem atualizar o espelho, o teste falha.
 
 **Comece por aqui:** [`ROTEIRO.md`](docs/estudo/ROTEIRO.md) — a ordem de leitura pensada para cada documento chegar com o vocabulário do anterior já pronto.
 
@@ -202,18 +202,20 @@ finan/
 
 ## 🩺 Estado e pendências
 
-Em uso real (versão 0.1.0). `npm run test:core` passa (35 testes, sem dependência — só `node --test`).
+Em uso real (versão 0.1.0). `npm run test:core` passa (59 testes, sem dependência — só `node --test`; 21 deles conferem os documentos de estudo).
 O `npm install` só é necessário para abrir a janela (Electron) e gerar executáveis.
 
 **Revisão de 08/10/2026:** o importador de CSV tratava `"R$ -50,00"` (sinal **depois** do
 símbolo da moeda) como **entrada** — o teste do sinal era `startsWith('-')`. Corrigido em
 `src/core/importar.js` (`csvValor`) com teste em `test/importacao.test.mjs`.
 
+**Revisão de 08/10/2026 (tarde):** `dados.json` corrompido abria o app **vazio** e o primeiro
+lançamento gravava por cima. Agora o app avisa e bloqueia a gravação até um backup ser importado
+(`src/ui/storage.js`, teste em `test/storage-leitura.test.mjs`). O espelho de estudo também
+tinha furos (o `app.css` estava resumido, faltavam imports em `parcelas`); voltou a 100% e ganhou
+o teste que impede de abrir de novo.
+
 **Pendências conhecidas**
-- Se o `dados.json` estiver corrompido (JSON inválido), o app abre **vazio** sem avisar
-  (`src/ui/storage.js`, `carregarEstado`). O arquivo ruim não se perde — a 1ª gravação o
-  copia para `dados.json.backup` e `backups/` antes de sobrescrever —, mas o ideal é mostrar
-  um aviso e não gravar por cima.
 - CSV com valor `1.234` (milhar BR sem centavos) é lido como `1,234` (formato US): ambíguo
   por natureza; o `.ofx` não tem esse problema.
 

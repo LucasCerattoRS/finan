@@ -5,6 +5,7 @@
 import * as C from '../core/index.js';
 import {
   carregarEstado, salvarEstado, localDados, exportarBackup, importarBackup,
+  falhaDeLeitura, liberarGravacao,
 } from './storage.js';
 import {
   graficoEvolucao, graficoCategorias, sparkline, gaugeSaude,
@@ -42,14 +43,17 @@ function opts(select, lista, sel) {
 function field(label, input) {
   return el('label', { class: 'field' }, [el('span', {}, label), input]);
 }
-function toast(msg) {
+function toast(msg, ms = 1800) {
   const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800);
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms);
 }
 const nomeCartao = (id) => (estado.cartoes.find((c) => c.id === id) || {}).nome || '—';
 const rotuloTipo = (t) => ({ entrada: 'Entrada', saida: 'Saída', cartao: 'Cartão', transferencia: 'Transf.' }[t] || t);
 
+const AVISO_LEITURA = 'Seus dados salvos não puderam ser lidos. Nada será gravado até você importar um backup (Config → Importar backup). O arquivo original não foi tocado.';
+
 async function persistir() {
+  if (falhaDeLeitura()) { toast(AVISO_LEITURA, 10000); return; }
   await salvarEstado(estado);
   atualizarTopo();
   render();
@@ -1072,7 +1076,7 @@ function renderConfig(v) {
     el('button', { class: 'btn', onclick: async () => { const nome = await exportarBackup(estado); if (nome) toast(`Exportado: ${nome}`); } }, '⭳ Exportar backup (.json)'),
     el('button', { class: 'btn ghost', onclick: async () => {
       const novo = await importarBackup();
-      if (novo) { estado = novo; await persistir(); toast('Backup importado!'); }
+      if (novo) { liberarGravacao(); estado = novo; await persistir(); toast('Backup importado!'); }
     } }, '⭱ Importar backup'),
   ]));
   v.append(backup);
@@ -1164,6 +1168,7 @@ function chipsEditor(titulo, chave) {
 // ---------- init ----------
 async function init() {
   estado = await carregarEstado();
+  if (falhaDeLeitura()) toast(AVISO_LEITURA, 15000);
   const meses = C.mesesComMovimento(estado);
   if (meses.length) mesAtual = meses[meses.length - 1];
 
