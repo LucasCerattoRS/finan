@@ -250,3 +250,13 @@ test('adiantar fatura: pagar em julho a fatura de outubro reduz o comprometido f
   // e não inventou gasto novo em julho (o dinheiro sai no extrato do banco)
   assert.equal(C.resumoMes(estado, '2026-07').saidas, 0);
 });
+
+// Revisão 08/10/2026: o comentário do csvValor prometia "R$ -50,00" negativo, mas o
+// teste do sinal era s.startsWith('-') — com o "R$ " na frente, a saída virava ENTRADA.
+test('CSV: sinal depois do "R$" continua sendo saída', () => {
+  const csv = 'Data;Descrição;Valor\n16/02/2026;Padaria;R$ -50,00\n17/02/2026;Pix recebido;R$ 80,00\n';
+  const txs = C.parseExtrato(csv, 'extrato.csv');
+  assert.equal(txs[0].tipo, 'saida');
+  assert.equal(txs[0].valor, 50);
+  assert.equal(txs[1].tipo, 'entrada');
+});

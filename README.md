@@ -200,6 +200,40 @@ finan/
 
 ---
 
+## 🩺 Estado e pendências
+
+Em uso real (versão 0.1.0). `npm run test:core` passa (35 testes, sem dependência — só `node --test`).
+O `npm install` só é necessário para abrir a janela (Electron) e gerar executáveis.
+
+**Revisão de 08/10/2026:** o importador de CSV tratava `"R$ -50,00"` (sinal **depois** do
+símbolo da moeda) como **entrada** — o teste do sinal era `startsWith('-')`. Corrigido em
+`src/core/importar.js` (`csvValor`) com teste em `test/importacao.test.mjs`.
+
+**Pendências conhecidas**
+- Se o `dados.json` estiver corrompido (JSON inválido), o app abre **vazio** sem avisar
+  (`src/ui/storage.js`, `carregarEstado`). O arquivo ruim não se perde — a 1ª gravação o
+  copia para `dados.json.backup` e `backups/` antes de sobrescrever —, mas o ideal é mostrar
+  um aviso e não gravar por cima.
+- CSV com valor `1.234` (milhar BR sem centavos) é lido como `1,234` (formato US): ambíguo
+  por natureza; o `.ofx` não tem esse problema.
+
+---
+
+## 🎓 Para estudar
+
+1. **Dinheiro em centavos inteiros** — `src/core/model.js`, `paraCentavos`/`paraReais`
+   (seção "Dinheiro"): por que `0,1 + 0,2` não pode ser somado em `float`.
+2. **Parcelas que sempre fecham o total** — `src/core/parcelas.js`, `parcelasDaTransacao`:
+   divisão inteira + a última parcela absorve o resto.
+3. **Escrita atômica** — `electron/main.js`, `salvarDados`: grava em `.tmp` e só então
+   `rename` — se a luz cair no meio, o arquivo antigo continua inteiro.
+4. **Ponte segura do Electron** — `electron/preload.js` (`contextBridge.exposeInMainWorld`):
+   a página só enxerga as 5 funções expostas, nunca o Node inteiro.
+
+Tudo isso está explicado linha a linha em [`docs/estudo/`](docs/estudo/).
+
+---
+
 ## ⚠️ Aviso
 
 Este projeto é uma ferramenta pessoal de organização e um material de estudo de programação. **Não é aconselhamento financeiro, contábil ou de investimentos.**

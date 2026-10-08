@@ -110,7 +110,8 @@ function csvData(bruto) {
 function csvValor(bruto) {
   let s = String(bruto || '').trim();
   if (!s) return 0;
-  const negativo = s.startsWith('-') || (s.startsWith('(') && s.endsWith(')'));
+  // "-" em qualquer ponto ANTES do 1º dígito: cobre "-50", "-R$ 50" e "R$ -50".
+  const negativo = /^[^\d]*-/.test(s) || (s.startsWith('(') && s.endsWith(')'));
   s = s.replace(/[^\d.,]/g, '');
   const ultimaVirgula = s.lastIndexOf(',');
   const ultimoPonto = s.lastIndexOf('.');

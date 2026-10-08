@@ -285,7 +285,8 @@ como separador.
 function csvValor(bruto) {
   let s = String(bruto || '').trim();
   if (!s) return 0;
-  const negativo = s.startsWith('-') || (s.startsWith('(') && s.endsWith(')'));
+  // "-" em qualquer ponto ANTES do 1º dígito: cobre "-50", "-R$ 50" e "R$ -50".
+  const negativo = /^[^\d]*-/.test(s) || (s.startsWith('(') && s.endsWith(')'));
   s = s.replace(/[^\d.,]/g, '');
   const ultimaVirgula = s.lastIndexOf(',');
   const ultimoPonto = s.lastIndexOf('.');
@@ -296,6 +297,11 @@ function csvValor(bruto) {
   return negativo ? -Math.abs(n) : n;
 }
 ```
+
+> **Revisão 08/10/2026:** a versão anterior testava `s.startsWith('-')`, então `"R$ -50,00"`
+> (sinal depois do símbolo da moeda) virava **entrada**. A regex `^[^\d]*-` lê: "do início,
+> qualquer coisa que não seja dígito, e então um `-`" — o sinal é aceito em qualquer lugar
+> antes do número. Teste: `CSV: sinal depois do "R$"…` em `test/importacao.test.mjs`.
 
 **O problema mais chato de todos: `1.234,56` (BR) vs `1234.56` (US).** O mesmo texto
 `1.234` significa "mil duzentos e trinta e quatro" no Brasil e "um vírgula duzentos
