@@ -1,0 +1,16 @@
+# Roda os testes automaticos a cada push e pull request.
+name: testes
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run test:core
