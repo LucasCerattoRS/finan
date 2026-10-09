@@ -13,13 +13,23 @@ let falhaLeitura = null;
 export const falhaDeLeitura = () => falhaLeitura;
 export const liberarGravacao = () => { falhaLeitura = null; };
 
+// JSON válido que não é um objeto ([], null, 123...) não é um arquivo de dados do app.
+function lerSeguro(json) {
+  if (!json) return carregar(null);
+  const dados = JSON.parse(json);
+  if (dados === null || typeof dados !== 'object' || Array.isArray(dados)) {
+    throw new Error('formato inesperado (não é um objeto de dados)');
+  }
+  return carregar(dados);
+}
+
 export async function carregarEstado() {
   try {
     if (temElectron()) {
       const json = await window.finanwise.ler();
-      return carregar(json || null);
+      return lerSeguro(json);
     }
-    return carregar(localStorage.getItem(LS_KEY));
+    return lerSeguro(localStorage.getItem(LS_KEY));
   } catch (e) {
     console.error('Falha ao carregar; começando vazio e com gravação bloqueada.', e);
     falhaLeitura = e && e.message ? e.message : String(e);

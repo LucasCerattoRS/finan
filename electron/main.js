@@ -21,8 +21,9 @@ const arquivoDados = () => path.join(pastaDados(), 'dados.json');
 function lerDados() {
   try {
     return fs.readFileSync(arquivoDados(), 'utf8');
-  } catch {
-    return null; // ainda não existe -> app começa vazio
+  } catch (e) {
+    if (e && e.code === 'ENOENT') return null; // ainda não existe -> app começa vazio
+    throw e; // existe mas não leu (permissão, E/S): a UI abre vazia SEM gravar por cima
   }
 }
 
