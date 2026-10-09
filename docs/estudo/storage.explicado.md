@@ -83,13 +83,23 @@ backup, em `app.js`.
 ## Bloco 1 — carregar e salvar
 
 ```js
+// JSON válido que não é um objeto ([], null, 123...) não é um arquivo de dados do app.
+function lerSeguro(json) {
+  if (!json) return carregar(null);
+  const dados = JSON.parse(json);
+  if (dados === null || typeof dados !== 'object' || Array.isArray(dados)) {
+    throw new Error('formato inesperado (não é um objeto de dados)');
+  }
+  return carregar(dados);
+}
+
 export async function carregarEstado() {
   try {
     if (temElectron()) {
       const json = await window.finanwise.ler();
-      return carregar(json || null);
+      return lerSeguro(json);
     }
-    return carregar(localStorage.getItem(LS_KEY));
+    return lerSeguro(localStorage.getItem(LS_KEY));
   } catch (e) {
     console.error('Falha ao carregar; começando vazio e com gravação bloqueada.', e);
     falhaLeitura = e && e.message ? e.message : String(e);
@@ -123,9 +133,10 @@ export async function salvarEstado(estado) {
 - `JSON.stringify(estado, null, 2)` — o `2` é a indentação (2 espaços). É o que
   faz o `dados.json` salvo no disco ser legível por humano (abrir num editor de
   texto e entender), não uma linha só comprimida.
-- `carregar(json || null)` — se `json` for string vazia, `null`, ou `undefined`,
-  o `||` normaliza tudo para `null` antes de entregar pro núcleo, que sabe tratar
-  "sem dado ainda" como um caso só.
+- `lerSeguro(json)` — se `json` for string vazia, `null`, ou `undefined`, entrega
+  `null` ao núcleo, que trata "sem dado ainda" como um caso só. Se houver texto, ele
+  precisa ser JSON **e** um objeto: `[]`, `null`, `123` ou `"texto"` são JSON válido,
+  mas não são dados do app; viram erro e caem no mesmo bloqueio de gravação.
 
 **Conceito por trás — onde mora a fronteira "puro vs. impuro".** Note a divisão de
 trabalho: **este arquivo não entende a estrutura do estado.** Ele não sabe o que é

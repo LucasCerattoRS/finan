@@ -35,3 +35,16 @@ test('dado válido: nenhuma trava', async () => {
   await storage.carregarEstado();
   assert.equal(storage.falhaDeLeitura(), null);
 });
+
+test('JSON válido mas que não é um objeto de dados também bloqueia o save', async () => {
+  for (const lixo of ['[]', 'null', '123', '"texto"']) {
+    storage.liberarGravacao();
+    guardado.set(LS, lixo);
+    const estado = await storage.carregarEstado();
+    assert.deepEqual(estado.transacoes, [], `abre vazio com ${lixo}`);
+    assert.ok(storage.falhaDeLeitura(), `trava com ${lixo}`);
+    await assert.rejects(storage.salvarEstado(estado), /Gravação bloqueada/);
+    assert.equal(guardado.get(LS), lixo, 'o dado original continua lá');
+  }
+  storage.liberarGravacao();
+});

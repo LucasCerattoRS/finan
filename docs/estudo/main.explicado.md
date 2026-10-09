@@ -101,14 +101,16 @@ ambiente específicas de cada empacotador. É por isso que ela mora em
 function lerDados() {
   try {
     return fs.readFileSync(arquivoDados(), 'utf8');
-  } catch {
-    return null; // ainda não existe -> app começa vazio
+  } catch (e) {
+    if (e && e.code === 'ENOENT') return null; // ainda não existe -> app começa vazio
+    throw e; // existe mas não leu (permissão, E/S): a UI abre vazia SEM gravar por cima
   }
 }
 ```
 
-**O que faz.** Lê o arquivo; se não existir (primeira vez que o app roda ali),
-devolve `null` em vez de deixar a exceção subir.
+**O que faz.** Lê o arquivo; se não existir (`ENOENT`, primeira vez que o app roda
+ali), devolve `null`. Qualquer outro erro (permissão, falha de leitura no pendrive)
+sobe: a UI trata como dado ilegível, abre vazia e bloqueia a gravação.
 
 **Sintaxe:** `catch` sem parâmetro (`catch { ... }`, sem `catch (e) { ... }`) —
 sintaxe válida desde ES2019 pra quando você **não precisa** do objeto de erro,
