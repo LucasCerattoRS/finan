@@ -401,6 +401,24 @@ export function mesDe(dataISO) {
 (não cria `Date`, então não há surpresa de timezone).
 
 ```js
+// dataLocalISO() -> "2026-10-31" no fuso de quem usa o app. toISOString() é UTC:
+// às 21h de 31/10 em São Paulo já devolveria "2026-11-01".
+export function dataLocalISO(d = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+// mesLocalISO() -> "2026-10" (mesmo cuidado de fuso)
+export function mesLocalISO(d = new Date()) {
+  return mesDe(dataLocalISO(d));
+}
+```
+**O que faz.** Dá a data (e o mês) de **hoje no relógio de quem usa**. `getFullYear`,
+`getMonth` (0–11, por isso o `+ 1`) e `getDate` leem a data no fuso local; `padStart(2, '0')`
+garante `"07"` em vez de `"7"`. O parâmetro `d` com default `new Date()` deixa o teste passar
+uma data fixa (`test/datas-locais.test.mjs`). Por que não `toISOString().slice(0, 10)`: ele
+converte para UTC antes — às 22h de 31/10 no Brasil já é 01/11 em UTC.
+
+```js
 // rotuloMes("2026-02") -> "Fevereiro 2026"
 export function rotuloMes(mesISO) {
   const [ano, mes] = String(mesISO).split('-').map(Number);

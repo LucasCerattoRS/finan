@@ -72,7 +72,7 @@ irrelevante e a clareza compensa.
 ## 2. O padrão CRUD puro: transações e cartões
 
 ```js
-import { migrar, estadoInicial, novoId } from './model.js';
+import { migrar, estadoInicial, novoId, dataLocalISO } from './model.js';
 
 // --- Operações de mutação (retornam novo estado; UI persiste depois) ---
 
@@ -180,7 +180,7 @@ export function registrarPagamentoFatura(estado, dados) {
   const p = {
     id: novoId('pag'),
     criadoEm: new Date().toISOString(),
-    data: new Date().toISOString().slice(0, 10),
+    data: dataLocalISO(),
     ...dados,
   };
   return { ...estado, pagamentosFatura: [...estado.pagamentosFatura, p] };
@@ -189,7 +189,7 @@ export function registrarPagamentoFatura(estado, dados) {
 
 **O que faz.** Registra o pagamento de uma fatura. Segue o molde do "adicionar", com um detalhe:
 preenche **defaults** antes de `...dados` — um `criadoEm` (timestamp completo ISO) e uma `data`
-(só o dia, `YYYY-MM-DD`). Como `...dados` vem **por último**, se a UI mandar uma `data` própria,
+(só o dia, `YYYY-MM-DD`, no fuso local — `dataLocalISO`, ver `model.explicado.md`). Como `...dados` vem **por último**, se a UI mandar uma `data` própria,
 ela **vence** o default. É o idioma "valores padrão, sobrescritos pelo que veio".
 
 **Detalhe de negócio.** O comentário do fonte lembra: `data` é *quando o dinheiro saiu*. Se for

@@ -12,7 +12,7 @@ export * from './planejamento.js';
 export * from './reserva.js';
 export * from './metas.js';
 
-import { migrar, estadoInicial, novoId } from './model.js';
+import { migrar, estadoInicial, novoId, dataLocalISO } from './model.js';
 
 // --- Operações de mutação (retornam novo estado; UI persiste depois) ---
 
@@ -54,7 +54,7 @@ export function registrarPagamentoFatura(estado, dados) {
   const p = {
     id: novoId('pag'),
     criadoEm: new Date().toISOString(),
-    data: new Date().toISOString().slice(0, 10),
+    data: dataLocalISO(),
     ...dados,
   };
   return { ...estado, pagamentosFatura: [...estado.pagamentosFatura, p] };

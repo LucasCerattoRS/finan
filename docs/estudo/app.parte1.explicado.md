@@ -89,7 +89,7 @@ a conveniência do namespace.
 
 ```js
 let estado = C.estadoInicial();
-let mesAtual = new Date().toISOString().slice(0, 7);
+let mesAtual = C.mesLocalISO();
 let tabAtual = 'dashboard';
 let candidatos = null; // pré-visualização da importação (não persistida)
 let revisarSoNomeados = true; // ver revisar.js: só o que o extrato nomeia pode virar regra
@@ -140,7 +140,7 @@ parte do `estado` persistido e tentar salvá-la por engano.
 ```js
 const $ = (sel) => document.querySelector(sel);
 const fmt = C.formatarBRL;
-const hoje = () => new Date().toISOString().slice(0, 10);
+const hoje = () => C.dataLocalISO();
 ```
 
 **O que faz.** `$` é um apelido curto para `document.querySelector` (o nome
@@ -157,20 +157,17 @@ Atribuí-la a `fmt` cria um segundo nome para a mesma função — chamar
 legibilidade: `fmt(r.entradas)` (usado dezenas de vezes no arquivo) é mais
 curto e menos repetitivo que `C.formatarBRL(r.entradas)` a cada chamada.
 
-**Sintaxe — `new Date().toISOString().slice(0, 7)` vs. `slice(0, 10)`.**
-`toISOString()` sempre devolve algo como `"2026-07-20T14:32:00.000Z"`. Fatiar
-os primeiros 7 caracteres pega `"2026-07"` (ano-mês, o formato que `mesAtual`
-usa em todo o arquivo); fatiar os primeiros 10 pega `"2026-07-20"`
-(ano-mês-dia, o formato de um campo `<input type="date">`). A mesma técnica de
-"string ISO tem largura fixa, fatiar por posição é seguro" que você viu em
-`calculos.explicado.md` (`m.slice(0, 4)` para extrair o ano de um mês).
+**Sintaxe — `C.mesLocalISO()` vs. `C.dataLocalISO()`.** As duas vêm do
+`model.js`: `dataLocalISO()` devolve `"2026-07-20"` (ano-mês-dia, o formato de
+um campo `<input type="date">`) e `mesLocalISO()` devolve `"2026-07"`
+(ano-mês, o formato que `mesAtual` usa em todo o arquivo).
 
-**Armadilha — `toISOString()` usa UTC, não o fuso local.** Isso significa que
-perto da meia-noite, num fuso com diferença grande de UTC, `hoje()` pode
-devolver a data de "ontem" ou "amanhã" dependendo da hora exata. Para um app
-de finanças pessoais isso raramente importa (o usuário ajusta a data manual se
-precisar), mas é o tipo de detalhe que um app de fuso-crítico (ex.: reservas de
-hotel) não poderia ignorar.
+**Armadilha (já corrigida) — `toISOString()` usa UTC, não o fuso local.** A
+versão antiga era `new Date().toISOString().slice(0, 10)`. No Brasil (UTC−3),
+a partir das 21h isso já devolve o dia **seguinte** — e, no último dia do mês,
+o mês seguinte: a compra lançada às 22h de 31/10 caía em novembro. Por isso a
+data de "hoje" é montada com `getFullYear`/`getMonth`/`getDate`, que respeitam
+o fuso da máquina (teste em `test/datas-locais.test.mjs`).
 
 ---
 

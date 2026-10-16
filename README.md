@@ -202,7 +202,7 @@ finan/
 
 ## 🩺 Estado e pendências
 
-Em uso real (versão 0.1.0). `npm run test:core` passa (59 testes, sem dependência — só `node --test`; 21 deles conferem os documentos de estudo).
+Em uso real (versão 0.1.0). `npm run test:core` passa (64 testes, sem dependência — só `node --test`; 21 deles conferem os documentos de estudo).
 O `npm install` só é necessário para abrir a janela (Electron) e gerar executáveis.
 
 **Revisão de 08/10/2026:** o importador de CSV tratava `"R$ -50,00"` (sinal **depois** do
@@ -214,6 +214,15 @@ lançamento gravava por cima. Agora o app avisa e bloqueia a gravação até um 
 (`src/ui/storage.js`, teste em `test/storage-leitura.test.mjs`). O espelho de estudo também
 tinha furos (o `app.css` estava resumido, faltavam imports em `parcelas`); voltou a 100% e ganhou
 o teste que impede de abrir de novo.
+
+**Revisão de 16/10/2026:** a data de "hoje" (formulário de lançamento, mês aberto ao iniciar e
+pagamento de fatura sem data) usava `toISOString()`, que é UTC: no Brasil, depois das 21h o app
+já achava que era o dia seguinte — e, no último dia do mês, o mês seguinte. Agora usa o fuso
+local (`dataLocalISO`/`mesLocalISO` em `src/core/model.js`, teste em `test/datas-locais.test.mjs`).
+No CSV, uma coluna `Data Lançamento` virava também a descrição (todo lançamento ficava com a data
+no lugar do nome) e linhas de apresentação antes do cabeçalho (conta, período, saldo) faziam a
+importação devolver zero lançamentos. Corrigido em `parseCSV`, testes em `test/importacao.test.mjs`.
+Registro: `docs/registros/2026-10-16-auditoria-datas-csv.md`.
 
 **Pendências conhecidas**
 - CSV com valor `1.234` (milhar BR sem centavos) é lido como `1,234` (formato US): ambíguo

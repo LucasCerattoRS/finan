@@ -48,20 +48,39 @@ export function parseCSV(texto) {
   const linhas = String(texto).split(/\r?\n/).filter((l) => l.trim());
   if (!linhas.length) return [];
 
-  const sep = detectarSeparador(linhas[0]);
-  const cabecalho = dividirLinha(linhas[0], sep).map(normalizar);
+  // Alguns bancos põem conta, período e saldo ANTES da tabela: o cabeçalho é a
+  // primeira linha que tem coluna de data e de valor (procura nas 20 primeiras).
+  const colunas = (l) => dividirLinha(l, detectarSeparador(l)).map(normalizar);
+  const temCampo = (cols, nomes) => cols.some((c) => nomes.some((n) => c.includes(n)));
+  const NOMES_DATA = ['data', 'date'];
+  const NOMES_VALOR = ['valor', 'amount', 'quantia'];
+  const iCab = linhas.slice(0, 20).findIndex((l) => {
+    const cols = colunas(l);
+    return temCampo(cols, NOMES_DATA) && temCampo(cols, NOMES_VALOR);
+  });
+  if (iCab < 0) return [];
+  const sep = detectarSeparador(linhas[iCab]);
+  const cabecalho = colunas(linhas[iCab]);
 
-  const acha = (...nomes) => cabecalho.findIndex((c) => nomes.some((n) => c.includes(n)));
-  const iData = acha('data', 'date');
-  const iValor = acha('valor', 'amount', 'quantia');
+  // Procura nome a nome (o 1º da lista tem prioridade) e pula coluna já usada:
+  // "Data Lançamento" é a data, não a descrição, mesmo contendo "lancamento".
+  const usadas = [];
+  const acha = (...nomes) => {
+    for (const n of nomes) {
+      const i = cabecalho.findIndex((c, j) => c.includes(n) && !usadas.includes(j));
+      if (i >= 0) { usadas.push(i); return i; }
+    }
+    return -1;
+  };
+  const iData = acha(...NOMES_DATA);
+  const iValor = acha(...NOMES_VALOR);
   const iDesc = acha('descricao', 'title', 'historico', 'estabelecimento', 'lancamento', 'memo');
   // id único do banco, quando vier (Sicredi manda "Identificador"): é dedupe melhor
   // que o hash data+valor+descrição, que confundiria dois Pix iguais no mesmo dia.
   const iId = acha('identificador', 'fitid', 'id da transacao');
-  if (iData < 0 || iValor < 0) return [];
 
   const out = [];
-  for (const linha of linhas.slice(1)) {
+  for (const linha of linhas.slice(iCab + 1)) {
     const cols = dividirLinha(linha, sep);
     const dataISO = csvData(cols[iData]);
     const valor = csvValor(cols[iValor]);

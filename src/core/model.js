@@ -107,6 +107,16 @@ export function normalizar(s) {
 export function mesDe(dataISO) {
   return String(dataISO).slice(0, 7);
 }
+// dataLocalISO() -> "2026-10-31" no fuso de quem usa o app. toISOString() é UTC:
+// às 21h de 31/10 em São Paulo já devolveria "2026-11-01".
+export function dataLocalISO(d = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+// mesLocalISO() -> "2026-10" (mesmo cuidado de fuso)
+export function mesLocalISO(d = new Date()) {
+  return mesDe(dataLocalISO(d));
+}
 // rotuloMes("2026-02") -> "Fevereiro 2026"
 export function rotuloMes(mesISO) {
   const [ano, mes] = String(mesISO).split('-').map(Number);

@@ -155,18 +155,33 @@ export function parseCSV(texto) {
   const linhas = String(texto).split(/\r?\n/).filter((l) => l.trim());
   if (!linhas.length) return [];
 
-  const sep = detectarSeparador(linhas[0]);
-  const cabecalho = dividirLinha(linhas[0], sep).map(normalizar);
+  const colunas = (l) => dividirLinha(l, detectarSeparador(l)).map(normalizar);
+  const temCampo = (cols, nomes) => cols.some((c) => nomes.some((n) => c.includes(n)));
+  const NOMES_DATA = ['data', 'date'];
+  const NOMES_VALOR = ['valor', 'amount', 'quantia'];
+  const iCab = linhas.slice(0, 20).findIndex((l) => {
+    const cols = colunas(l);
+    return temCampo(cols, NOMES_DATA) && temCampo(cols, NOMES_VALOR);
+  });
+  if (iCab < 0) return [];
+  const sep = detectarSeparador(linhas[iCab]);
+  const cabecalho = colunas(linhas[iCab]);
 
-  const acha = (...nomes) => cabecalho.findIndex((c) => nomes.some((n) => c.includes(n)));
-  const iData = acha('data', 'date');
-  const iValor = acha('valor', 'amount', 'quantia');
+  const usadas = [];
+  const acha = (...nomes) => {
+    for (const n of nomes) {
+      const i = cabecalho.findIndex((c, j) => c.includes(n) && !usadas.includes(j));
+      if (i >= 0) { usadas.push(i); return i; }
+    }
+    return -1;
+  };
+  const iData = acha(...NOMES_DATA);
+  const iValor = acha(...NOMES_VALOR);
   const iDesc = acha('descricao', 'title', 'historico', 'estabelecimento', 'lancamento', 'memo');
   const iId = acha('identificador', 'fitid', 'id da transacao');
-  if (iData < 0 || iValor < 0) return [];
 
   const out = [];
-  for (const linha of linhas.slice(1)) {
+  for (const linha of linhas.slice(iCab + 1)) {
     const cols = dividirLinha(linha, sep);
     const dataISO = csvData(cols[iData]);
     const valor = csvValor(cols[iValor]);
@@ -183,29 +198,30 @@ export function parseCSV(texto) {
 }
 ```
 
-**O que faz.** Lê um CSV sem exigir formato fixo: descobre o separador, acha as
-colunas **pelo nome** do cabeçalho e converte cada linha.
+**O que faz.** Lê um CSV sem exigir formato fixo: acha a linha do cabeçalho,
+descobre o separador, acha as colunas **pelo nome** e converte cada linha.
+
+**Achar o cabeçalho.** Alguns bancos exportam conta, período e saldo **antes** da
+tabela. `iCab` é a primeira linha (entre as 20 primeiras) que tem uma coluna de data
+**e** uma de valor; sem nenhuma, não há o que ler (`return []`). Os dados começam
+na linha seguinte: `linhas.slice(iCab + 1)`.
 
 **Achar coluna por nome, não por posição** — o coração da tolerância:
-```js
-const acha = (...nomes) => cabecalho.findIndex((c) => nomes.some((n) => c.includes(n)));
-const iDesc = acha('descricao', 'title', 'historico', 'estabelecimento', ...);
-```
 - `...nomes` — **rest parameter**: junta todos os argumentos num array. `acha('valor',
   'amount', 'quantia')` recebe `nomes = ['valor','amount','quantia']`.
-- `cabecalho.findIndex(c => nomes.some(n => c.includes(n)))` — procura a **posição**
-  da coluna cujo título contém **algum** dos sinônimos. `some` = "existe pelo menos
-  um que satisfaz".
+- `acha` tenta os sinônimos **na ordem** (o primeiro tem prioridade) e devolve a
+  **posição** da primeira coluna cujo título contém aquele nome e que **ainda não foi
+  usada** (`usadas`). Sem isso, `"Data Lançamento"` — que contém `"lancamento"` — virava
+  também a coluna da descrição, e todo lançamento importado ficava com a data no lugar do
+  nome. `findIndex` devolve `-1` quando não acha.
 
 Por que isso importa: o Nubank chama de "Descrição", o Inter de "Histórico", uma
 fatura de "Estabelecimento". Em vez de exigir uma ordem fixa, o parser aceita
 qualquer um dos sinônimos, em qualquer posição. É **tolerância a formato** — a mesma
 filosofia do "tolerant reader" do `model.js`.
 
-- `if (iData < 0 || iValor < 0) return [];` — sem coluna de data **ou** de valor, não
-  dá pra fazer nada (`findIndex` devolve `-1` quando não acha). Descrição e id são
-  opcionais (`iDesc >= 0 ? ... : ''`).
-- `linhas.slice(1)` — pula o cabeçalho (linha 0) e processa o resto.
+- Data e valor existem sempre: a linha só vira cabeçalho se tiver os dois. Descrição e
+  id são opcionais (`iDesc >= 0 ? ... : ''`).
 
 ---
 

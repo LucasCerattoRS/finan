@@ -661,8 +661,8 @@ onde os dados interessantes estão.
 
 **Conceito por trás — por que `mesAtual` (variável de módulo, Parte 1) só é
 sobrescrita aqui condicionalmente (`if (meses.length)`).** Ela já nasce
-inicializada com o mês-calendário de hoje (`let mesAtual = new
-Date().toISOString().slice(0, 7);`, Parte 1) — essa continua sendo a
+inicializada com o mês-calendário de hoje (`let mesAtual =
+C.mesLocalISO();`, Parte 1) — essa continua sendo a
 escolha correta para um app **recém-instalado**, sem nenhum dado ainda
 (`meses.length === 0`). O `if` aqui é a única correção necessária: "se
 existir histórico, prefira o mês mais recente do histórico ao mês
