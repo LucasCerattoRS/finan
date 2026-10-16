@@ -260,3 +260,27 @@ test('CSV: sinal depois do "R$" continua sendo saída', () => {
   assert.equal(txs[0].valor, 50);
   assert.equal(txs[1].tipo, 'entrada');
 });
+
+// Dados sintéticos. Cabeçalho "Data Lançamento" contém "lancamento", que também é um dos
+// nomes da coluna de descrição: a descrição não pode ser a coluna da data.
+test('CSV: "Data Lançamento" não vira a coluna de descrição', () => {
+  const csv = 'Data Lançamento;Histórico;Descrição;Valor;Saldo\n'
+    + '01/07/2026;Pix enviado;Loja Exemplo;-50,00;950,00\n';
+  const [l] = C.parseCSV(csv);
+  assert.equal(l.data, '2026-07-01');
+  assert.equal(l.descricao, 'Loja Exemplo');
+  assert.equal(l.tipo, 'saida');
+  assert.equal(l.valor, 50);
+});
+
+test('CSV: linhas de apresentação antes do cabeçalho não zeram a importação', () => {
+  const csv = 'Extrato Conta Corrente\nConta ;0000\nPeríodo ;01/07/2026 a 31/07/2026\n'
+    + 'Saldo ;1.000,00\n\n'
+    + 'Data Lançamento;Histórico;Descrição;Valor;Saldo\n'
+    + '01/07/2026;Pix enviado;Loja Exemplo;-50,00;950,00\n'
+    + '02/07/2026;Pix recebido;Fulano Ficticio;1.234,56;2.184,56\n';
+  const ls = C.parseCSV(csv);
+  assert.equal(ls.length, 2);
+  assert.deepEqual(ls.map((l) => [l.data, l.tipo, l.valor]),
+    [['2026-07-01', 'saida', 50], ['2026-07-02', 'entrada', 1234.56]]);
+});

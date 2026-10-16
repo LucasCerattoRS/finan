@@ -12,14 +12,14 @@ import {
 } from './charts.js';
 
 let estado = C.estadoInicial();
-let mesAtual = new Date().toISOString().slice(0, 7);
+let mesAtual = C.mesLocalISO();
 let tabAtual = 'dashboard';
 let candidatos = null; // pré-visualização da importação (não persistida)
 let revisarSoNomeados = true; // ver revisar.js: só o que o extrato nomeia pode virar regra
 
 const $ = (sel) => document.querySelector(sel);
 const fmt = C.formatarBRL;
-const hoje = () => new Date().toISOString().slice(0, 10);
+const hoje = () => C.dataLocalISO();
 
 // ---------- helpers de DOM ----------
 function el(tag, props = {}, children = []) {
