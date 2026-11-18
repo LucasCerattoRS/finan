@@ -202,7 +202,7 @@ finan/
 
 ## 🩺 Estado e pendências
 
-Em uso real (versão 0.1.0). `npm run test:core` passa (64 testes, sem dependência — só `node --test`; 21 deles conferem os documentos de estudo).
+Em uso real (versão 0.1.0). `npm run test:core` passa (68 testes, sem dependência — só `node --test`; 21 deles conferem os documentos de estudo).
 O `npm install` só é necessário para abrir a janela (Electron) e gerar executáveis.
 
 **Revisão de 08/10/2026:** o importador de CSV tratava `"R$ -50,00"` (sinal **depois** do
@@ -224,9 +224,17 @@ no lugar do nome) e linhas de apresentação antes do cabeçalho (conta, períod
 importação devolver zero lançamentos. Corrigido em `parseCSV`, testes em `test/importacao.test.mjs`.
 Registro: `docs/registros/2026-10-16-auditoria-datas-csv.md`.
 
+**Revisão de 18/11/2026:** no CSV, `1.234` (milhar sem centavos) era lido como `1,234`, e
+`1.234.567` virava `NaN` e a linha sumia da importação sem aviso (o mesmo com `"1,234"` e
+`"1,234,567"` em extrato US). Agora um símbolo repetido é sempre milhar, e o `1.234` ambíguo
+é decidido pelo resto da coluna de valor (um `50,00` em qualquer linha prova BR; sem prova,
+`;` como separador de colunas desempata como BR). Cabeçalho `Description` (inglês) também
+passou a ser lido como descrição. Testes em `test/importacao.test.mjs`.
+
 **Pendências conhecidas**
-- CSV com valor `1.234` (milhar BR sem centavos) é lido como `1,234` (formato US): ambíguo
-  por natureza; o `.ofx` não tem esse problema.
+- Extrato em que **todos** os valores são `1.234`/`1,234` e o separador de colunas não é `;`
+  continua sendo lido como US: sem nenhuma pista no arquivo, não há como saber. O `.ofx` não
+  tem esse problema.
 
 ---
 
