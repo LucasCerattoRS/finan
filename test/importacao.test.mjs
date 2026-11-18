@@ -284,3 +284,36 @@ test('CSV: linhas de apresentação antes do cabeçalho não zeram a importaçã
   assert.deepEqual(ls.map((l) => [l.data, l.tipo, l.valor]),
     [['2026-07-01', 'saida', 50], ['2026-07-02', 'entrada', 1234.56]]);
 });
+
+// Revisão 18/11/2026 (dados sintéticos): "1.234" sem centavos é ambíguo olhando o número
+// sozinho; o resto da coluna decide. Antes, num extrato BR virava R$ 1,23 e "1.234.567"
+// virava NaN, e a linha sumia sem aviso.
+test('CSV: milhar sem centavos num extrato BR', () => {
+  const csv = 'Data;Descrição;Valor\n01/07/2026;Mercado;-50,00\n'
+    + '02/07/2026;Salário;1.234\n03/07/2026;Venda do carro;1.234.567\n';
+  assert.deepEqual(C.parseCSV(csv).map((l) => [l.descricao, l.tipo, l.valor]),
+    [['Mercado', 'saida', 50], ['Salário', 'entrada', 1234], ['Venda do carro', 'entrada', 1234567]]);
+});
+
+test('CSV: milhar sem centavos num extrato US (e cabeçalho "Description")', () => {
+  const csv = 'Date,Description,Amount\n2026-07-01,Grocery,-50.00\n'
+    + '2026-07-02,Paycheck,"1,234"\n2026-07-03,Car,"1,234,567"\n2026-07-04,House,"-1,234,567.89"\n';
+  assert.deepEqual(C.parseCSV(csv).map((l) => [l.descricao, l.tipo, l.valor]),
+    [['Grocery', 'saida', 50], ['Paycheck', 'entrada', 1234], ['Car', 'entrada', 1234567],
+      ['House', 'saida', 1234567.89]]);
+});
+
+test('CSV: sem nenhum centavo no arquivo, ";" desempata como BR e "," como US', () => {
+  const br = C.parseCSV('Data;Descrição;Valor\n01/07/2026;Aluguel;-1.500\n');
+  assert.equal(br[0].valor, 1500);
+  const us = C.parseCSV('Date,Description,Amount\n2026-07-01,Rent,"-1,500"\n');
+  assert.equal(us[0].valor, 1500);
+  // decimal de verdade com 1 ou 2 casas continua decimal, nos dois formatos
+  assert.equal(C.parseCSV('Data;Descrição;Valor\n01/07/2026;Café;-4,5\n')[0].valor, 4.5);
+  assert.equal(C.parseCSV('Date,Description,Amount\n2026-07-01,Coffee,-4.5\n')[0].valor, 4.5);
+});
+
+test('CSV: "0.001" é decimal mesmo num arquivo ";" (milhar nunca começa com zero)', () => {
+  assert.equal(C.parseCSV('Date;Description;Amount\n2026-07-01;Interest;0.001\n')[0].valor, 0.001);
+  assert.equal(C.parseCSV('Data;Descrição;Valor\n01/07/2026;Juros;0,001\n')[0].valor, 0.001);
+});

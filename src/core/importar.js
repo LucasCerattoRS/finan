@@ -74,16 +74,18 @@ export function parseCSV(texto) {
   };
   const iData = acha(...NOMES_DATA);
   const iValor = acha(...NOMES_VALOR);
-  const iDesc = acha('descricao', 'title', 'historico', 'estabelecimento', 'lancamento', 'memo');
+  const iDesc = acha('descricao', 'description', 'title', 'historico', 'estabelecimento', 'lancamento', 'memo');
   // id único do banco, quando vier (Sicredi manda "Identificador"): é dedupe melhor
   // que o hash data+valor+descrição, que confundiria dois Pix iguais no mesmo dia.
   const iId = acha('identificador', 'fitid', 'id da transacao');
 
+  const linhasCols = linhas.slice(iCab + 1).map((l) => dividirLinha(l, sep));
+  const formato = formatoDecimal(linhasCols.map((cols) => cols[iValor]), sep);
+
   const out = [];
-  for (const linha of linhas.slice(iCab + 1)) {
-    const cols = dividirLinha(linha, sep);
+  for (const cols of linhasCols) {
     const dataISO = csvData(cols[iData]);
-    const valor = csvValor(cols[iValor]);
+    const valor = csvValor(cols[iValor], formato);
     if (!dataISO || !valor) continue;
     out.push({
       data: dataISO,
@@ -126,19 +128,49 @@ function csvData(bruto) {
 }
 
 // Aceita "1.234,56" (BR), "1234.56" (US), "R$ -50,00" e "(50,00)" = negativo.
-function csvValor(bruto) {
+function csvValor(bruto, formato = '') {
   let s = String(bruto || '').trim();
   if (!s) return 0;
   // "-" em qualquer ponto ANTES do 1º dígito: cobre "-50", "-R$ 50" e "R$ -50".
   const negativo = /^[^\d]*-/.test(s) || (s.startsWith('(') && s.endsWith(')'));
   s = s.replace(/[^\d.,]/g, '');
-  const ultimaVirgula = s.lastIndexOf(',');
-  const ultimoPonto = s.lastIndexOf('.');
-  if (ultimaVirgula > ultimoPonto) s = s.replace(/\./g, '').replace(',', '.'); // BR
-  else s = s.replace(/,/g, ''); // US
+  const decimal = separadorDecimal(s, formato);
+  const milhar = decimal === ',' ? '.' : ',';
+  s = s.split(milhar).join('').replace(decimal, '.');
   const n = Number(s);
   if (!Number.isFinite(n) || n === 0) return 0;
   return negativo ? -Math.abs(n) : n;
+}
+
+// Qual símbolo é o decimal: o que aparece por último ("1.234,56" e "1,234.56");
+// repetido só pode ser milhar ("1.234.567"); "1.234" sozinho é ambíguo e o
+// formato do arquivo decide ("0.001" não: milhar nunca começa com zero). Sem formato, vale o próprio símbolo (como antes).
+function separadorDecimal(s, formato) {
+  const v = s.lastIndexOf(',');
+  const p = s.lastIndexOf('.');
+  if (v >= 0 && p >= 0) return v > p ? ',' : '.';
+  const unico = v >= 0 ? ',' : '.';
+  const partes = s.split(unico);
+  if (partes.length > 2) return unico === ',' ? '.' : ',';
+  if (partes.length === 2 && partes[1].length === 3 && /^[1-9]/.test(partes[0]) && formato) {
+    return formato === 'br' ? ',' : '.';
+  }
+  return unico;
+}
+
+// Formato do arquivo inteiro, pela coluna de valor: um "50,00" em qualquer linha
+// prova BR, um "50.00" prova US. Sem prova (ou prova dos dois), o separador de
+// colunas desempata: ";" é o padrão dos bancos brasileiros.
+function formatoDecimal(valores, sep) {
+  let br = false;
+  let us = false;
+  for (const bruto of valores) {
+    const m = String(bruto || '').replace(/[^\d.,]/g, '').match(/([.,])\d{1,2}$/);
+    if (m && m[1] === ',') br = true;
+    if (m && m[1] === '.') us = true;
+  }
+  if (br !== us) return br ? 'br' : 'us';
+  return sep === ';' ? 'br' : 'us';
 }
 
 // ---- Entrada única ---------------------------------------------------

@@ -177,14 +177,16 @@ export function parseCSV(texto) {
   };
   const iData = acha(...NOMES_DATA);
   const iValor = acha(...NOMES_VALOR);
-  const iDesc = acha('descricao', 'title', 'historico', 'estabelecimento', 'lancamento', 'memo');
+  const iDesc = acha('descricao', 'description', 'title', 'historico', 'estabelecimento', 'lancamento', 'memo');
   const iId = acha('identificador', 'fitid', 'id da transacao');
 
+  const linhasCols = linhas.slice(iCab + 1).map((l) => dividirLinha(l, sep));
+  const formato = formatoDecimal(linhasCols.map((cols) => cols[iValor]), sep);
+
   const out = [];
-  for (const linha of linhas.slice(iCab + 1)) {
-    const cols = dividirLinha(linha, sep);
+  for (const cols of linhasCols) {
     const dataISO = csvData(cols[iData]);
-    const valor = csvValor(cols[iValor]);
+    const valor = csvValor(cols[iValor], formato);
     if (!dataISO || !valor) continue;
     out.push({
       data: dataISO,
@@ -222,10 +224,14 @@ filosofia do "tolerant reader" do `model.js`.
 
 - Data e valor existem sempre: a linha só vira cabeçalho se tiver os dois. Descrição e
   id são opcionais (`iDesc >= 0 ? ... : ''`).
+- Antes do laço, as linhas de dados são divididas **uma vez** (`linhasCols`) porque a
+  coluna de valor é lida duas vezes: primeiro inteira, para `formatoDecimal` decidir se o
+  arquivo é BR ou US (ver Parte 5), depois linha a linha. `'description'` cobre extratos
+  com cabeçalho em inglês, que antes vinham sem descrição.
 
 ---
 
-## Parte 5 — os três ajudantes do CSV
+## Parte 5 — os ajudantes do CSV
 
 ### 5a. Detectar o separador
 
@@ -298,16 +304,15 @@ mês, dia) para virar ISO. `[/-]` é uma **classe de caractere**: barra **ou** h
 como separador.
 
 ```js
-function csvValor(bruto) {
+function csvValor(bruto, formato = '') {
   let s = String(bruto || '').trim();
   if (!s) return 0;
   // "-" em qualquer ponto ANTES do 1º dígito: cobre "-50", "-R$ 50" e "R$ -50".
   const negativo = /^[^\d]*-/.test(s) || (s.startsWith('(') && s.endsWith(')'));
   s = s.replace(/[^\d.,]/g, '');
-  const ultimaVirgula = s.lastIndexOf(',');
-  const ultimoPonto = s.lastIndexOf('.');
-  if (ultimaVirgula > ultimoPonto) s = s.replace(/\./g, '').replace(',', '.'); // BR
-  else s = s.replace(/,/g, ''); // US
+  const decimal = separadorDecimal(s, formato);
+  const milhar = decimal === ',' ? '.' : ',';
+  s = s.split(milhar).join('').replace(decimal, '.');
   const n = Number(s);
   if (!Number.isFinite(n) || n === 0) return 0;
   return negativo ? -Math.abs(n) : n;
@@ -323,10 +328,24 @@ function csvValor(bruto) {
 `1.234` significa "mil duzentos e trinta e quatro" no Brasil e "um vírgula duzentos
 e trinta e quatro" nos EUA. Como decidir?
 
-**A heurística:** olhe **qual símbolo aparece por último**. Se a **vírgula** vem
-depois do ponto (`ultimaVirgula > ultimoPonto`), o formato é BR — o ponto é milhar
-(remove) e a vírgula é decimal (vira ponto). Senão, é US — a vírgula é milhar
-(remove). É engenhoso: o separador decimal é sempre o **último** que aparece.
+**A heurística, em três degraus** (função `separadorDecimal`, logo abaixo):
+1. Se aparecem **os dois** símbolos, o **último** é o decimal: `1.234,56` é BR,
+   `1,234.56` é US.
+2. Se um símbolo aparece **repetido**, ele só pode ser de milhar: `1.234.567` e
+   `1,234,567` não têm decimal nenhum.
+3. Se aparece **um só, uma vez, com 3 dígitos depois** (`1.234`, `1,234`), olhando o
+   número sozinho é impossível decidir. Aí quem decide é o **arquivo inteiro**
+   (`formatoDecimal`): se alguma linha da coluna de valor tem `50,00`, o arquivo é BR;
+   se tem `50.00`, é US.
+
+Depois de saber qual é o decimal, o outro símbolo é o de milhar: `split(milhar).join('')`
+remove todas as ocorrências dele e `.replace(decimal, '.')` troca o decimal pelo ponto
+que o `Number` entende.
+
+> **Revisão 18/11/2026:** a versão anterior olhava só "qual símbolo vem por último".
+> Num extrato BR sem centavos, `1.234` virava **R$ 1,23**; num extrato US, `"1,234"`
+> também; e `1.234.567`/`"1,234,567"` viravam `NaN` e a linha **sumia** da importação
+> sem aviso. Testes: `CSV: milhar sem centavos…` em `test/importacao.test.mjs`.
 
 Outros detalhes:
 - `s.startsWith('(') && s.endsWith(')')` — contabilidade escreve negativo entre
@@ -334,6 +353,47 @@ Outros detalhes:
 - `s.replace(/[^\d.,]/g, '')` — tira tudo que **não** é dígito, ponto ou vírgula
   (`[^...]` é negação de classe). Some `"R$"`, espaços, sinais.
 - `negativo ? -Math.abs(n) : n` — reaplica o sinal no fim.
+
+```js
+function separadorDecimal(s, formato) {
+  const v = s.lastIndexOf(',');
+  const p = s.lastIndexOf('.');
+  if (v >= 0 && p >= 0) return v > p ? ',' : '.';
+  const unico = v >= 0 ? ',' : '.';
+  const partes = s.split(unico);
+  if (partes.length > 2) return unico === ',' ? '.' : ',';
+  if (partes.length === 2 && partes[1].length === 3 && /^[1-9]/.test(partes[0]) && formato) {
+    return formato === 'br' ? ',' : '.';
+  }
+  return unico;
+}
+```
+Os três degraus, na ordem. `unico` é o único símbolo presente (ou `'.'` quando não há
+nenhum, como em `"50"` — aí tanto faz). `s.split(unico)` conta as ocorrências: 3 ou
+mais pedaços quer dizer símbolo repetido, logo milhar, e o decimal é o **outro**.
+No degrau 3, `/^[1-9]/.test(partes[0])` exige que a parte antes do símbolo comece
+com 1–9: grupo de milhar nunca começa com zero, então `0.001` é sempre decimal.
+Sem `formato` (quem chama sem saber o arquivo), o caso ambíguo continua como antes:
+o próprio símbolo é o decimal.
+
+```js
+function formatoDecimal(valores, sep) {
+  let br = false;
+  let us = false;
+  for (const bruto of valores) {
+    const m = String(bruto || '').replace(/[^\d.,]/g, '').match(/([.,])\d{1,2}$/);
+    if (m && m[1] === ',') br = true;
+    if (m && m[1] === '.') us = true;
+  }
+  if (br !== us) return br ? 'br' : 'us';
+  return sep === ';' ? 'br' : 'us';
+}
+```
+Procura **prova** na coluna inteira: um símbolo seguido de 1 ou 2 dígitos no fim
+(`([.,])\d{1,2}$`) só pode ser decimal. Se só aparece prova de um lado, ele vence.
+Sem prova nenhuma (tudo inteiro ou tudo `1.234`) ou com prova dos dois lados
+(arquivo bagunçado), o separador de colunas desempata: bancos brasileiros exportam
+com `;` justamente porque a vírgula já é o decimal.
 
 **Conceito por trás — normalização de formatos regionais.** Datas e números têm
 convenções locais (*locale*). Em vez de exigir uma, o parser **detecta e converte**.
